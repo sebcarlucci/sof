@@ -39,18 +39,28 @@ DECLARE_SOF_UUID("dcblock", dcblock_uuid, 0xb809efaf, 0x5681, 0x42b1,
  * H(z) = (1 - z^-1)/(1-Rz^-1).
  * Setting R to 1 makes the filter act as a passthrough component.
  */
+<<<<<<< HEAD
 static void dcblock_set_passthrough(struct comp_data *cd)
+=======
+static int dcblock_set_passthrough(struct comp_data *cd)
+>>>>>>> sof: dcblock: Add DC Blocking Filter Component
 {
 	comp_cl_info(&comp_dcblock, "dcblock_set_passthrough()");
 	int i;
 
 	for (i = 0; i < PLATFORM_MAX_CHANNELS; i++)
 		cd->R_coeffs[i] = ONE_Q2_30;
+<<<<<<< HEAD
+=======
+
+	return 0;
+>>>>>>> sof: dcblock: Add DC Blocking Filter Component
 }
 
 /**
  * \brief Initializes the state of the DC Blocking Filter
  */
+<<<<<<< HEAD
 static void dcblock_init_state(struct comp_data *cd)
 {
 	int i;
@@ -59,6 +69,40 @@ static void dcblock_init_state(struct comp_data *cd)
 		cd->state[i].y_prev = 0;
 		cd->state[i].x_prev = 0;
 	}
+=======
+static int dcblock_init_state(struct comp_data *cd,
+			      struct audio_stream *src_stream)
+{
+	int32_t *x0;
+	int i;
+
+	for (i = 0; i < PLATFORM_MAX_CHANNELS; i++) {
+		x0 = audio_stream_read_frag_s32(src_stream, 0);
+		cd->state[i].y_prev = 0;
+
+		switch (src_stream->frame_fmt) {
+		case SOF_IPC_FRAME_S16_LE:
+			cd->state[i].x_prev = *x0 << 16;
+			break;
+
+		case SOF_IPC_FRAME_S24_4LE:
+			cd->state[i].x_prev = *x0 << 8;
+			break;
+
+		case SOF_IPC_FRAME_S32_LE:
+			cd->state[i].x_prev = *x0;
+			break;
+
+		default:
+			comp_cl_err(&comp_dcblock, "dcblock_init_state(), "
+				    "Invalid frame format: %i",
+				    src_stream->frame_fmt);
+			return -EINVAL;
+		}
+	}
+
+	return 0;
+>>>>>>> sof: dcblock: Add DC Blocking Filter Component
 }
 
 /**
@@ -100,16 +144,30 @@ static struct comp_dev *dcblock_new(const struct comp_driver *drv,
 	comp_set_drvdata(dev, cd);
 
 	cd->dcblock_func = NULL;
+<<<<<<< HEAD
+=======
+	cd->source_format = 0;
+	cd->sink_format = 0;
+
+>>>>>>> sof: dcblock: Add DC Blocking Filter Component
 	/**
 	 * Copy over the coefficients from the blob to cd->R_coeffs
 	 * Set passthrough if the size of the blob is invalid
 	 */
 	if (bs == sizeof(cd->R_coeffs)) {
 		ret = memcpy_s(cd->R_coeffs, bs, ipc_dcblock->data, bs);
+<<<<<<< HEAD
 		assert(!ret);
 	} else {
 		if (bs > 0)
 			comp_cl_warn(&comp_dcblock, "dcblock_new(), binary blob size %i, expected %i",
+=======
+		comp_cl_info(&comp_dcblock, "TEST, %x", cd->R_coeffs[0]);
+		assert(!ret);
+	} else {
+		if (bs > 0)
+			comp_cl_info(&comp_dcblock, "dcblock_new(), binary blob size %i, expected %i",
+>>>>>>> sof: dcblock: Add DC Blocking Filter Component
 				     bs, sizeof(cd->R_coeffs));
 		dcblock_set_passthrough(cd);
 	}
@@ -131,6 +189,7 @@ static void dcblock_free(struct comp_dev *dev)
 	rfree(dev);
 }
 
+<<<<<<< HEAD
 static int dcblock_verify_params(struct comp_dev *dev,
 				 struct sof_ipc_stream_params *params)
 {
@@ -147,6 +206,8 @@ static int dcblock_verify_params(struct comp_dev *dev,
 	return 0;
 }
 
+=======
+>>>>>>> sof: dcblock: Add DC Blocking Filter Component
 /**
  * \brief Sets DC Blocking Filter component audio stream parameters.
  * \param[in,out] dev DC Blocking Filter base component device.
@@ -157,6 +218,7 @@ static int dcblock_verify_params(struct comp_dev *dev,
 static int dcblock_params(struct comp_dev *dev,
 			  struct sof_ipc_stream_params *params)
 {
+<<<<<<< HEAD
 	int err;
 
 	comp_dbg(dev, "dcblock_params()");
@@ -166,6 +228,9 @@ static int dcblock_params(struct comp_dev *dev,
 		comp_err(dev, "dcblock_params(): pcm params verification failed");
 		return -EINVAL;
 	}
+=======
+	comp_info(dev, "dcblock_params()");
+>>>>>>> sof: dcblock: Add DC Blocking Filter Component
 
 	return 0;
 }
@@ -188,7 +253,12 @@ static int dcblock_cmd_get_data(struct comp_dev *dev,
 			  resp_size);
 
 		if (resp_size > max_size) {
+<<<<<<< HEAD
 			comp_err(dev, "response size %i exceeds maximum size %i ",
+=======
+			comp_err(dev, "response size %i "
+				 "exceeds maximum size %i ",
+>>>>>>> sof: dcblock: Add DC Blocking Filter Component
 				 resp_size, max_size);
 			ret = -EINVAL;
 			break;
@@ -227,8 +297,13 @@ static int dcblock_cmd_set_data(struct comp_dev *dev,
 
 		break;
 	default:
+<<<<<<< HEAD
 		comp_err(dev, "dcblock_set_data(), invalid command %i",
 			 cdata->cmd);
+=======
+		comp_err(dev, "dcblock_set_data(), "
+			"invalid command %i", cdata->cmd);
+>>>>>>> sof: dcblock: Add DC Blocking Filter Component
 		ret = -EINVAL;
 	}
 
@@ -299,12 +374,18 @@ static void dcblock_process(struct comp_dev *dev, struct comp_buffer *source,
 static int dcblock_copy(struct comp_dev *dev)
 {
 	struct comp_copy_limits cl;
+<<<<<<< HEAD
 	struct comp_buffer *sourceb;
 	struct comp_buffer *sinkb;
+=======
+	struct comp_buffer *source;
+	struct comp_buffer *sink;
+>>>>>>> sof: dcblock: Add DC Blocking Filter Component
 	uint32_t flags = 0;
 
 	comp_dbg(dev, "dcblock_copy()");
 
+<<<<<<< HEAD
 	sourceb = list_first_item(&dev->bsource_list, struct comp_buffer,
 				  sink_list);
 	sinkb = list_first_item(&dev->bsink_list, struct comp_buffer,
@@ -320,6 +401,23 @@ static int dcblock_copy(struct comp_dev *dev)
 	buffer_unlock(sourceb, flags);
 
 	dcblock_process(dev, sourceb, sinkb,
+=======
+	source = list_first_item(&dev->bsource_list, struct comp_buffer,
+				 sink_list);
+	sink = list_first_item(&dev->bsink_list, struct comp_buffer,
+			       source_list);
+
+	buffer_lock(sink, flags);
+	buffer_lock(source, flags);
+
+	/* Get source, sink, number of frames etc. to process. */
+	comp_get_copy_limits(source, sink, &cl);
+
+	buffer_unlock(sink, flags);
+	buffer_unlock(source, flags);
+
+	dcblock_process(dev, source, sink,
+>>>>>>> sof: dcblock: Add DC Blocking Filter Component
 			cl.frames, cl.source_bytes, cl.sink_bytes);
 
 	return 0;
@@ -369,11 +467,24 @@ static int dcblock_prepare(struct comp_dev *dev)
 		goto err;
 	}
 
+<<<<<<< HEAD
 	dcblock_init_state(cd);
 
 	cd->dcblock_func = dcblock_find_func(cd->source_format);
 	if (!cd->dcblock_func) {
 		comp_err(dev, "dcblock_prepare(), No processing function matching frames format");
+=======
+	ret = dcblock_init_state(cd, &sourceb->stream);
+	if (ret < 0) {
+		comp_err(dev, "dcblock_prepare(), failed to initialize state");
+		goto err;
+	}
+
+	cd->dcblock_func = dcblock_find_func(cd->source_format);
+	if (!cd->dcblock_func) {
+		comp_err(dev, "dcblock_prepare(), "
+			"No processing function matching frames format");
+>>>>>>> sof: dcblock: Add DC Blocking Filter Component
 		ret = -EINVAL;
 		goto err;
 	}
