@@ -44,7 +44,7 @@ PIPELINE_PCM_ADD(sof/pipe-volume-playback.m4,
 
 # Low Latency playback pipeline 2 on PCM 1 using max 2 channels of s32le.
 # 1000us deadline on core 0 with priority 0
-PIPELINE_PCM_ADD(sof/pipe-volume-playback.m4,
+PIPELINE_PCM_ADD(sof/pipe-volume-loopback.m4,
 	2, 1, 2, s32le,
 	1000, 0, 0,
 	48000, 48000, 48000)
@@ -104,20 +104,6 @@ DAI_ADD(sof/pipe-dai-playback.m4,
 	PIPELINE_SOURCE_1, 2, s16le,
 	1000, 0, 0, SCHEDULE_TIME_DOMAIN_TIMER)
 
-# playback DAI is SSP2 using 2 periods
-# Buffers use s16le format, 1000us deadline on core 0 with priority 0
-DAI_ADD(sof/pipe-dai-playback.m4,
-	2, SSP, 2, SSP2-Codec,
-	PIPELINE_SOURCE_2, 2, s16le,
-	1000, 0, 0, SCHEDULE_TIME_DOMAIN_TIMER)
-
-# capture DAI is SSP2 using 2 periods
-# Buffers use s16le format, 1000us deadline on core 0 with priority 0
-DAI_ADD(sof/pipe-dai-capture.m4,
-	3, SSP, 2, SSP2-Codec,
-	PIPELINE_SINK_3, 2, s16le,
-	1000, 0, 0, SCHEDULE_TIME_DOMAIN_TIMER)
-
 # capture DAI is DMIC0 using 2 periods
 # Buffers use s32le format, 1000us deadline on core 0 with priority 0
 DAI_ADD(sof/pipe-dai-capture.m4,
@@ -147,7 +133,8 @@ DAI_ADD(sof/pipe-dai-playback.m4,
         1000, 0, 0, SCHEDULE_TIME_DOMAIN_TIMER)
 
 PCM_PLAYBACK_ADD(Speakers, 0, PIPELINE_PCM_1)
-PCM_DUPLEX_ADD(Headset, 1, PIPELINE_PCM_2, PIPELINE_PCM_3)
+PCM_PLAYBACK_ADD(LoopOut, 1, PIPELINE_PCM_SINK_2)
+PCM_CAPTURE_ADD(LoopIn, 1, PIPELINE_PCM_SOURCE_2)
 PCM_CAPTURE_ADD(DMIC, 99, PIPELINE_PCM_4)
 PCM_PLAYBACK_ADD(HDMI1, 5, PIPELINE_PCM_5)
 PCM_PLAYBACK_ADD(HDMI2, 6, PIPELINE_PCM_6)
@@ -164,14 +151,6 @@ DAI_CONFIG(SSP, 1, 0, SSP1-Codec,
 		SSP_CLOCK(fsync, 48000, codec_slave),
 		SSP_TDM(2, 16, 3, 3),
 		SSP_CONFIG_DATA(SSP, 1, 16, 1)))
-
-#SSP 2 (ID: 1) with 19.2 MHz mclk with MCLK_ID 1, 1.92 MHz bclk
-DAI_CONFIG(SSP, 2, 1, SSP2-Codec,
-	SSP_CONFIG(I2S, SSP_CLOCK(mclk, 19200000, codec_mclk_in),
-		SSP_CLOCK(bclk, 1920000, codec_slave),
-		SSP_CLOCK(fsync, 48000, codec_slave),
-		SSP_TDM(2, 20, 3, 3),
-		SSP_CONFIG_DATA(SSP, 2, 16, 1)))
 
 # dmic01 (id: 2)
 DAI_CONFIG(DMIC, 0, 2, dmic01,
