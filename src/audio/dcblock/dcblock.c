@@ -26,6 +26,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+static const struct comp_driver comp_dcblock;
+
 /**
  * \brief Sets the DC Blocking filter in pass through mode.
  * The frequency response of a DCB filter is:
