@@ -42,6 +42,26 @@ int *lp[] = {lp0, lp1, lp2};
 int *hp[] = {hp0, hp1, hp2};
 /* DO NOT FORGET TO REMOVE */
 
+/**
+ * The assign_sink array in the configuration maps to the pipeline ids. 
+ * This function  returns the index i such that assign_sink[i] = pipe_id
+ */
+static uint8_t get_stream_index(struct comp_data *cd, uint32_t pipe_id)
+{
+	int i;
+
+	for (i = 0; i < CROSSOVER_MAX_STREAMS; i++)
+		if (cd->config.data.assign_sink[i].pipeline_id == pipe_id)
+			return i;
+
+	comp_cl_err(&comp_crossover, "get_stream_index() error: couldn't find configuration for connected pipeline %u",
+		    pipe_id);
+
+	return -1;
+}
+
+
+
 static void crossover_reset_lr4_state(lr4_state *lr4)
 {
         lr4->coef = NULL;
@@ -55,8 +75,8 @@ static void crossover_reset_lr4_state(lr4_state *lr4)
  */
 static inline int crossover_setup_lr4(int32_t *coef, lr4_state *lr4)
 {
-        lr4->biquads = 2;
-        lr4->biquads_in_series = 2;
+        lr4->biquads = 1;
+        lr4->biquads_in_series = 1; /* TODO Update this to two. Coefficients should be doubled*/
         lr4->coef = coef;
         /* LR4 filters are 4th order filters, so only need 4 delay slots */
         lr4->delay = rzalloc(SOF_MEM_ZONE_RUNTIME, 0, SOF_MEM_CAPS_RAM,
@@ -246,7 +266,12 @@ static int crossover_copy(struct comp_dev *dev)
         struct comp_buffer *sinks[CROSSOVER_MAX_STREAMS] = { NULL };
         struct list_item *clist;
         int ret;
+	int i;
+	uint32_t frames = -1;
+	uint32_t source_bytes;
+	uint32_t avail;
         uint32_t flags = 0;
+	uint32_t sinks_bytes[CROSSOVER_MAX_STREAMS] = { 0 };
 
         comp_dbg(dev, "crossover_copy()");
 
@@ -257,8 +282,12 @@ static int crossover_copy(struct comp_dev *dev)
   	list_for_item(clist, &dev->bsink_list) {
   		sink = container_of(clist, struct comp_buffer, source_list);
   		if (sink->sink->state == dev->state) {
-  			num_sinks++;
   			i = get_stream_index(cd, sink->pipeline_id);
+			if (i < 0) {
+				comp_warn(dev, "crossover_copy(), could not assign sink %i",
+					  sink->pipeline_id);
+				continue;
+			}
   			sinks[i] = sink;
   		}
   	}
@@ -268,7 +297,46 @@ static int crossover_copy(struct comp_dev *dev)
                 crossover_free_config(&cd->config);
                 cd->config = cd->config_new;
                 cd->config_new = NULL;
-        }
+		/* TODO */
+        }	
+	
+	buffer_lock(source, flags);
+
+	/* check if source is active */
+	if (source->source->state != dev->state) {
+		buffer_unlock(source, flags);
+		return -EINVAL;
+	}
+
+	for (i = 0; i < CROSSOVER_MAX_STREAMS; i++) {
+		if (!sinks[i])
+			continue;
+		buffer_lock(sinks[i], flags);
+		avail = audio_stream_avail_frames(&source->stream,
+						  &sinks[i]->stream);
+		frames = MIN(frames, avail);
+		buffer_unlock(sinks[i], flags);
+	}
+
+	buffer_unlock(source, flags);
+
+	source_bytes = frames * audio_stream_frame_bytes(&source->stream);
+	for (i = 0; i < CROSSOVER_MAX_STREAMS; i++) {
+		if (!sinks[i])
+			continue;
+		sinks_bytes[i] = frames *
+				 audio_stream_frame_bytes(&sinks[i]->stream);
+	}
+
+	/* update components */
+	for (i = 0; i < MUX_MAX_STREAMS; i++) {
+		if (!sinks[i])
+			continue;
+		comp_update_buffer_produce(sinks[i], sinks_bytes[i]);
+	}
+	comp_update_buffer_consume(source, source_bytes);
+
+
 
         return 0;
 }

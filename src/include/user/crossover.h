@@ -95,17 +95,16 @@ struct sof_crossover_config {
 
         /*
 	 * assign_sink[CROSSOVER_MAX_SINKS] + 
-         * assign_responses[channels_in_config] +
-         * struct sof_crossover_config_data[number_of_responses]
+         * struct sof_crossover_config_data[number_of_responses] +
+         * assign_responses[channels_in_config
          */
-        int32_t data[];
+        struct sof_crossover_config_data data;
 } __attribute__((packed));
 
 struct sof_crossover_config_data {
-        /* reserved */
-        uint32_t reserved[4];
-
-        struct sof_crossover_config_lr4 lr4_coeffs[6];
+        uint32_t assign_sink[CROSSOVER_MAX_SINKS]; 
+	struct sof_crossover_config_lr4 lr4_coeffs[6];
+	uint32_t assign_response[]
 };
 
 struct sof_crossover_config_lr4 {
