@@ -61,6 +61,8 @@ struct iir_state_df2t {
 	int64_t *delay; /* Pointer to IIR delay line */
 };
 
+int32_t iir_process_biquad(int32_t in, int32_t *coef, int64_t *delay);
+
 int32_t iir_df2t(struct iir_state_df2t *iir, int32_t x);
 
 int iir_init_coef_df2t(struct iir_state_df2t *iir,
