@@ -149,6 +149,13 @@ for i = 1:nr
 				lstr2 = sprintf("ch%d", test.ch(2));
 				legend(lstr1, lstr2, ...
 					'Location', 'NorthEast');
+			case 4
+				lstr1 = sprintf("ch%d", test.ch(1));
+				lstr2 = sprintf("ch%d", test.ch(2));
+				lstr3 = sprintf("ch%d", test.ch(3));
+				lstr4 = sprintf("ch%d", test.ch(4));
+				legend(lstr1, lstr2, lstr3, lstr4, ...
+					'Location', 'NorthEast');
 		end
 	else
 		lstr = sprintf("ch%d", test.ch(i));

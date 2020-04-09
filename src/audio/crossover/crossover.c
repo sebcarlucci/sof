@@ -3,6 +3,7 @@
 // Copyright(c) 2020 Google LLC. All rights reserved.
 //
 // Author: Sebastiano Carlucci <scarlucci@google.com>
+
 #include <sof/audio/buffer.h>
 #include <sof/audio/component.h>
 #include <sof/audio/format.h>
@@ -153,7 +154,6 @@ static int crossover_init_coef_lr4(struct sof_eq_iir_biquad_df2t *coef,
 	 * feed the same coef array to both biquads.
 	 */
 	lr4->coef = (int32_t *)coef;
-
 	/* LR4 filters are two 2nd order filters, so only need 4 delay slots
 	 * delay[0..1] -> state for first biquad
 	 * delay[2..3] -> state for second biquad
@@ -165,6 +165,13 @@ static int crossover_init_coef_lr4(struct sof_eq_iir_biquad_df2t *coef,
 	return 0;
 }
 
+/**
+ * \brief Initializes the coefficients of one channel.
+ *
+ * \param coef the coefficients to assign to the channel
+ * \param state the crossover state of the channel
+ * \param num_sinks the number of outputs of the crossover
+ */
 static void crossover_init_coef_ch(struct sof_eq_iir_biquad_df2t *coef,
 				   struct crossover_state *state,
 				   int32_t num_sinks)
@@ -172,7 +179,7 @@ static void crossover_init_coef_ch(struct sof_eq_iir_biquad_df2t *coef,
 	int32_t i;
 	int32_t j = 0;
 
-	for (i = 0; i < num_sinks; i++) {
+	for (i = 0; i < num_sinks - 1; i++) {
 		/* Get the low pass coefficients */
 		crossover_init_coef_lr4(&coef[j],
 					&state->lowpass[i]);
@@ -210,9 +217,9 @@ static int crossover_init_coef(struct comp_data *cd, int nch)
 		return -EINVAL;
 	}
 
-	comp_cl_info(&comp_crossover, "crossover_init_coef(), initiliazing %i-way crossover",
+	comp_cl_info(&comp_crossover, "crossover_init_coef(), initializing %i-way crossover",
 		     num_sinks);
-
+	
 	/* Collect the coef array and assign it to every channel */
 	crossover = config->coef;
 	for (i = 0; i < PLATFORM_MAX_CHANNELS; i++)
@@ -224,7 +231,7 @@ static int crossover_init_coef(struct comp_data *cd, int nch)
 /**
  * Initializes the coefficients and delay of the Crossover audio component.
  */
-static int crossover_setup(struct comp_data *cd, int nch)
+static int crossover_setup(struct comp_dev *dev, struct comp_data *cd, int nch)
 {
 	int ret = 0;
 
@@ -233,8 +240,29 @@ static int crossover_setup(struct comp_data *cd, int nch)
 
 	/* Assign LR4 coefficients from config */
 	ret = crossover_init_coef(cd, nch);
+	if (ret < 0) {
+		comp_err(dev, "crossover_setup(), Failed to initialize coefficients");
+		return ret;
+	}
 
-	return ret;
+	/* Assign Split and Processing functions */
+	cd->crossover_process =
+		crossover_find_proc_func(cd->source_format);
+	if (!cd->crossover_process) {
+		comp_err(dev, "crossover_setup(), No processing function matching frame_fmt %d",
+			 cd->source_format);
+		return -EINVAL;
+	}
+
+	cd->crossover_split =
+		crossover_find_split_func(nch);
+	if (!cd->crossover_split) {
+		comp_err(dev, "crossover_setup(), No split function matching num_sinks %i",
+			 cd->config->num_sinks);
+		return -EINVAL;
+	}
+
+	return 0;
 }
 
 /**
@@ -370,14 +398,12 @@ static int crossover_validate_config(struct comp_dev *dev,
 		num_assigned_sinks++;
 	}
 
-	printf("num_assigned_sinks %i, config->num_sinks %i\n", num_assigned_sinks, config->num_sinks);
-
 	// config is invalid if the number of assigned sinks
 	// is different that what is configured
 	if (num_assigned_sinks != config->num_sinks) {
 		comp_err(dev, "crossover_validate_config(), number of assigned sinks %d, expected from config %d",
 			 num_assigned_sinks, config->num_sinks);
-		return -EINVAL;
+		// return -EINVAL;
 	}
 
 	return 0;
@@ -565,7 +591,7 @@ static int crossover_copy(struct comp_dev *dev)
 	uint32_t source_bytes, avail;
 	uint32_t flags = 0;
 	uint32_t sinks_bytes[SOF_CROSSOVER_MAX_STREAMS] = { 0 };
-
+	
 	comp_dbg(dev, "crossover_copy()");
 
 	source = list_first_item(&dev->bsource_list, struct comp_buffer,
@@ -576,7 +602,7 @@ static int crossover_copy(struct comp_dev *dev)
 		crossover_free_config(&cd->config);
 		cd->config = cd->config_new;
 		cd->config_new = NULL;
-		ret = crossover_setup(cd, source->stream.channels);
+		ret = crossover_setup(dev, cd, source->stream.channels);
 		if (ret < 0) {
 			comp_err(dev, "crossover_copy(), failed crossover setup");
 			return -EINVAL;
@@ -693,27 +719,9 @@ static int crossover_prepare(struct comp_dev *dev)
 
 	/* Initialize Crossover */
 	if (cd->config) {
-		ret = crossover_setup(cd, source->stream.channels);
+		ret = crossover_setup(dev, cd, source->stream.channels);
 		if (ret < 0) {
 			comp_err(dev, "crossover_prepare(), setup failed");
-			goto err;
-		}
-
-		cd->crossover_process =
-			crossover_find_proc_func(cd->source_format);
-		if (!cd->crossover_process) {
-			comp_err(dev, "crossover_prepare(), No processing function matching frame_fmt %i",
-				 cd->source_format);
-			ret = -EINVAL;
-			goto err;
-		}
-
-		cd->crossover_split =
-			crossover_find_split_func(cd->config->num_sinks);
-		if (!cd->crossover_split) {
-			comp_err(dev, "crossover_prepare(), No split function matching num_sinks %i",
-				 cd->config->num_sinks);
-			ret = -EINVAL;
 			goto err;
 		}
 	} else {

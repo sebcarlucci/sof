@@ -14,11 +14,11 @@ if nargin < 1
 end
 
 if nargin < 2
-	bits_in_list = [16 32];
+	bits_in_list = [16];
 end
 
 if nargin < 3
-	bits_out_list = [16 32];
+	bits_out_list = [16];
 end
 
 if nargin < 4
@@ -37,12 +37,13 @@ t.blob = fullfile(blobpath, 'eq_iir_coef_flat.m4');
 %t.comp = 'EQFIR';
 %t.comp = 'volume';
 %t.comp = 'DCblock';
+t.comp = 'crossover';
 
 %% Defaults for test
 t.fmt = 'raw';              % Can be 'raw' (fast binary) or 'txt' (debug)
 t.fs = fs;                  % Sample rate from func params
-t.nch = 2;                  % Number of channels
-t.ch = [1 2];               % Test channel 1
+t.nch = 4;                  % Number of channels
+t.ch = [1 2 3 4];               % Test channel 1
 t.bits_in = bits_in_list;   % Input word length from func params
 t.bits_out = bits_out_list; % Output word length from func params
 t.full_test = 1;            % 0 is quick check only, 1 is full set
@@ -87,15 +88,15 @@ for b = 1:n_bits_out
 
                 v(1) = chirp_test(t);
 		if v(1) ~= -1 && t.full_test
-			[v(2) g] = g_test(t);
-			[v(3) dr] = dr_test(t);
-			[v(4) thdnf] = thdnf_test(t);
+			% [v(2) g] = g_test(t);
+			% [v(3) dr] = dr_test(t);
+			% [v(4) thdnf] = thdnf_test(t);
 			v(5) = fr_test(t);
 
 			% TODO: Collect results for all channels, now get worst-case
-			r.g(a, b) = g(1);
-			r.dr(a, b) = min(dr);
-			r.thdnf(a, b) = max(thdnf);
+			% r.g(a, b) = g(1);
+			% r.dr(a, b) = min(dr);
+			% r.thdnf(a, b) = max(thdnf);
 			r.pf(a, b, :) = v;
 		end
 
@@ -145,6 +146,7 @@ end
 n_fail = r.n_fail;
 n_pass = r.n_pass;
 n_na = r.n_na;
+pause
 
 %% Done
 end
@@ -367,6 +369,8 @@ switch lower(test.comp)
 		test.ex = './dcblock_run.sh';
 	case 'volume'
 		test.ex = './volume_run.sh';
+	case 'crossover'
+		test.ex = './crossover_run.sh';
 	otherwise
 		error('Unknown component');
 end

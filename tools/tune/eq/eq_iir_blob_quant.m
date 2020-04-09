@@ -137,7 +137,7 @@ for n=1:nbr_sections
         iir_resp(m+5) = section_shift;
         iir_resp(m+6) = eq_coef_quant( section_gain, bits_gain, qf_gain);
 
-	%fprintf('sec=%d, shift=%d, gain=%f\n', n, section_shift, section_gain);
+	fprintf('sec=%d, shift=%d, gain=%f\n', n, section_shift, section_gain);
 
 end
 

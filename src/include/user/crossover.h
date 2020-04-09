@@ -28,15 +28,15 @@
   *         TODO Look at crossover_generic.c to see how the sinks should be routed.
   *
   *		4-way:
-  *                                 o---- LR4 LP1 --> LOW assign_sink[0]
+  *                                 o---- LR4 LP0 --> LOW assign_sink[0]
   *                                 |
-  *                  o--- LR4 LP0 --o
+  *                  o--- LR4 LP1 --o
   *                  |              |
-  *                  |              o---- LR4 HP1 --> MID_LOW assign_sink[1]
+  *                  |              o---- LR4 HP0 --> MID_LOW assign_sink[1]
   *         x(n) --- o
   *                  |              o---- LR4 LP2 --> MID_HIGH assign_sink[2]
   *                  |              |
-  *                  o--- LR4 HP0 --o
+  *                  o--- LR4 HP1 --o
   *                                 |
   *                                 o---- LR4 HP2 --> HIGH assign_sink[3]
   *

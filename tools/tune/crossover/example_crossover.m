@@ -10,9 +10,9 @@ endian = "little";
 
 % Sampling Frequency and Frequency cut-offs for crossover
 fs = 48e3;
-fc_low = 200;
-fc_med = 1000;
-fc_high = 3000;
+fc_low = 500;
+fc_med = 2000;
+fc_high = 5000;
 
 % 4 way crossover
 num_sinks = 4;

@@ -68,7 +68,7 @@ typedef void (*crossover_process)(const struct comp_dev *dev,
 				  int32_t num_sinks,
 				  uint32_t frames);
 
-typedef void (*crossover_split)(int32_t in, int32_t *out[],
+typedef void (*crossover_split)(int32_t in, int32_t out[],
 				struct crossover_state *state);
 
 /* Crossover component private data */
@@ -138,7 +138,7 @@ static inline crossover_split crossover_find_split_func(int32_t num_sinks)
 {
 	int i;
 
-	/* Find suitable processing function from map */
+	/* Find suitable split function from map */
 	for (i = 0; i < crossover_split_fncount; i++)
 		if (num_sinks == crossover_split_fnmap[i].num_sinks)
 			return crossover_split_fnmap[i].crossover_split_func;
