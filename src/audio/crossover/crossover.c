@@ -760,14 +760,16 @@ static int crossover_prepare(struct comp_dev *dev)
 		  source->stream.channels);
 
 	/* Initialize Crossover */
-	/* To use this with testbench do not validate the config since the number
-	 * of assigned sinks will not match the number of actual sink buffers.
+	/* When running crossover on testbench, the config will always be
+	 * invalid since we can only have one sink buffer.
+	 * The number of assigned sinks will not match the number of actual sink buffers.
+	 * Therefore, do not take any action.
 	 */
-// 	if (cd->config && crossover_validate_config(dev, cd->config) < 0) {
-// 		/* If config is invalid then delete it.*/
-// 		comp_err(dev, "crossover_prepare(), invalid binary config format");
-// 		crossover_free_config(&cd->config);
-// 	}
+ 	if (cd->config && crossover_validate_config(dev, cd->config) < 0) {
+ 		/* If config is invalid then delete it.*/
+ 		comp_err(dev, "crossover_prepare(), invalid binary config format");
+ 		// crossover_free_config(&cd->config);
+ 	}
 
 	if (cd->config) {
 		ret = crossover_setup(cd, source->stream.channels);

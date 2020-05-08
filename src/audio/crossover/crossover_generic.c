@@ -151,6 +151,7 @@ static void crossover_s16_default(const struct comp_dev *dev,
 	int32_t out[num_sinks];
 
 	/* For testbench, reroute all the outputs to the channels of one buffer */
+	state = &cd->state[0];
 	for (i = 0; i < frames; i++) {
 		x = audio_stream_read_frag_s16(source_stream, idx);
 		cd->crossover_split(*x << 16, out, state);

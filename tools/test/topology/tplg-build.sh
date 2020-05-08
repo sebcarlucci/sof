@@ -215,7 +215,7 @@ done
 
 # for processing algorithms
 # ALG_MODE_TESTS=(asrc eq-fir eq-iir src dcblock)
-ALG_MODE_TESTS=(crossover)
+ALG_MODE_TESTS=(crossover dcblock)
 # ALG_SIMPLE_TESTS=(test-capture test-playback)
 ALG_SIMPLE_TESTS=(test-playback)
 ALG_PROTOCOL_TESTS=(I2S)
